@@ -116,6 +116,7 @@ function bankBalance(){
   return h;
 }
 const extraDays=p=>S.work.filter(e=>isOff(e.date)&&worked(e)>0&&e.date.startsWith(p)).length;
+const extraHours=p=>S.work.filter(e=>e.date.startsWith(p)).reduce((sum,e)=>sum+Math.max(0,extra(e)),0);
 function del(list,id){S[list]=S[list].filter(x=>x.id!==id);save()}
 window.del=del;
 
@@ -149,9 +150,10 @@ function dayRow(ds){
 }
 function vWork(){
   const bal=bankBalance(),t=today(),mon=mondayStr(new Date()),ym=t.slice(0,7);
-  const wh=hoursRange(mon,addDays(mon,6)),mh=hoursRange(ym+"-01",ym+"-31");
+  const wh=hoursRange(mon,addDays(mon,6)),mh=hoursRange(ym+"-01",ym+"-31"),yy=t.slice(0,4);
   let rows="";for(let i=0;i<14;i++)rows+=dayRow(addDays(t,-i));
   return `<div class="stats"><div class="stat"><b>${fmtH(wh)}</b><span>This week</span></div><div class="stat"><b>${fmtH(bal)}</b><span>Hour bank</span></div></div>
+  <div class="stats"><div class="stat"><b>${extraDays(yy)}</b><span>Extra days this year</span></div><div class="stat"><b>${fmtH(extraHours(yy))}</b><span>Extra hours this year</span></div></div>
   <p style="color:var(--mu);font-size:13px;margin:-2px 0 12px">This month: ${fmtH(mh)} \u00b7 Extra days: ${extraDays(ym)}</p>
   <div class="card"><h2 style="margin-top:0">This week \u00b7 Week ${weekNo(t)+1} of 4</h2><div style="display:flex;gap:4px">${strip()}</div></div>
   <div class="card"><h2 style="margin-top:0">Log an exception</h2>
