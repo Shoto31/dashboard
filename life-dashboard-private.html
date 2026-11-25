@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="theme-color" content="#07070f">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>My Dashboard</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Dashboard">
+<style>
+:root{--bg:#07070f;--card:#0e0e1b;--tx:#d7f9ff;--mu:#7f8fb3;--ac:#00f0ff;--ac2:rgba(0,240,255,.09);--bd:#26264d;--neg:#ff3d81;--pos:#39ff9c;--mag:#ff2bd6;--hd:"Orbitron","Share Tech Mono",ui-monospace,Consolas,monospace;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:dark}
+*{box-sizing:border-box}
+html{background:var(--bg);scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;color:var(--tx);font:15px/1.45 "Share Tech Mono",ui-monospace,Consolas,monospace;padding-bottom:90px;background:linear-gradient(rgba(0,240,255,.035) 1px,transparent 1px) 0 0/100% 28px,linear-gradient(90deg,rgba(255,43,214,.03) 1px,transparent 1px) 0 0/28px 100%,radial-gradient(ellipse at 50% -10%,#1a0f3a 0%,var(--bg) 60%) fixed var(--bg)}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.18) 0 1px,transparent 1px 3px);z-index:9}
+main{max-width:640px;margin:0 auto;padding:16px}
+h1{font:700 19px var(--hd);margin:4px 0 16px;color:var(--ac);text-transform:uppercase;letter-spacing:.14em;text-shadow:0 0 10px rgba(0,240,255,.7)}
+h1::before{content:"// ";color:var(--mag)}
+h2{font:700 12px var(--hd);margin:20px 0 8px;color:var(--mag);text-transform:uppercase;letter-spacing:.18em;text-shadow:0 0 8px rgba(255,43,214,.5)}
+h2::before{content:"\203A ";color:var(--ac)}
+.card,.stat{background:var(--card);border:1px solid var(--bd);border-left:3px solid var(--ac);border-radius:2px;padding:14px;margin-bottom:12px;clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,0 100%);box-shadow:inset 0 0 24px rgba(0,240,255,.04)}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.stats .stat{margin:0}
+.stat b{display:block;font:700 22px var(--hd);color:var(--ac);text-shadow:0 0 10px rgba(0,240,255,.6)}
+.stat b.pos{color:var(--pos);text-shadow:0 0 10px rgba(57,255,156,.6)}
+.stat b.neg{color:var(--neg);text-shadow:0 0 10px rgba(255,61,129,.6)}
+.stat span{color:var(--mu);font-size:12px;text-transform:uppercase;letter-spacing:.1em}
+.row{display:flex;gap:8px;margin-bottom:8px}
+.row>*{flex:1;min-width:0}
+label{display:block;font-size:11px;color:var(--mu);margin-bottom:3px;text-transform:uppercase;letter-spacing:.12em}
+input,select,textarea{width:100%;font:inherit;padding:10px;border:1px solid var(--bd);border-radius:2px;background:#07070f;color:var(--tx)}
+input:focus,select:focus{outline:0;border-color:var(--ac);box-shadow:0 0 0 1px var(--ac),0 0 12px rgba(0,240,255,.35)}
+input[type=date],input[type=time],input[type=month]{color-scheme:dark}
+button{font:700 13px var(--hd);border:0;border-radius:2px;padding:12px 14px;background:var(--ac);color:#05050a;text-transform:uppercase;letter-spacing:.14em;cursor:pointer;width:100%;box-shadow:0 0 14px rgba(0,240,255,.45);clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px)}
+button:active{background:var(--mag);box-shadow:0 0 14px rgba(255,43,214,.6)}
+button.g{background:var(--ac2);color:var(--ac);width:auto;padding:6px 10px;font-size:11px;box-shadow:none}
+button.x{background:transparent;color:var(--mu);width:auto;padding:4px 8px;font-size:18px;box-shadow:none;clip-path:none}
+button.x:active{color:var(--neg);background:transparent}
+.item{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--bd)}
+.item:first-child{border-top:0}
+.item .m{flex:1;min-width:0}
+.item .m small{display:block;color:var(--mu);font-size:12px;overflow-wrap:anywhere}
+.pos{color:var(--pos);font-weight:700;text-shadow:0 0 8px rgba(57,255,156,.45)}
+.neg{color:var(--neg);font-weight:700;text-shadow:0 0 8px rgba(255,61,129,.45)}
+nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:rgba(10,10,22,.96);border-top:1px solid var(--ac);box-shadow:0 -4px 22px rgba(0,240,255,.2);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));z-index:10}
+nav button{background:transparent;color:var(--mu);flex:1;padding:8px 2px;font-size:10px;letter-spacing:.1em;box-shadow:none;clip-path:none;border-top:2px solid transparent}
+nav button span{display:block;font-size:19px;filter:grayscale(1) brightness(1.4)}
+nav button.on{color:var(--ac);background:var(--ac2);border-top-color:var(--ac);text-shadow:0 0 8px rgba(0,240,255,.8)}
+nav button.on span{filter:none}
+.empty{color:var(--mu);text-align:center;padding:14px}
+#st{font:11px "Share Tech Mono",monospace;color:var(--pos);float:right;margin-top:6px;letter-spacing:.08em;text-transform:none;text-shadow:none}
+.chk{display:flex;align-items:center;gap:8px;margin:6px 0 10px;font-size:14px}
+.chk input{width:auto;accent-color:#00f0ff}
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Share+Tech+Mono&display=swap">
+</head>
+<body>
+<main>
+  <h1>My dashboard <span id="st"></span></h1>
+  <div id="v"></div>
+</main>
+<nav id="nav"></nav>
+
+<script>
+const TABS=[["work","🕒","Work"],["bank","⏳","Bank"],["money","💶","Money"],["games","🎮","Games"]];
+const CATS=["Salary","Other income","Housing","Food","Transport","Bills","Fun","Health","Other"];
+const STAT=["Backlog","Playing","Finished","Dropped"];
+let S={settings:{target:8,cur:"€"},work:[],bank:[],days:[],money:[],games:[]};
+/* 4-week rotation (Mon–Sun weeks). getDay: Sun=0 Tue=2 Wed=3 Sat=6 */
+const OFF=[[2,0],[6,0],[3,0],[6,0]];
+const mondayStr=d=>{const x=new Date(d);x.setHours(12,0,0,0);x.setDate(x.getDate()-((x.getDay()+6)%7));return x.toISOString().slice(0,10)};
+function weekNo(ds){const a=new Date((S.settings.anchor||"2026-11-02")+"T12:00:00"),b=new Date(mondayStr(new Date(ds+"T12:00:00"))+"T12:00:00");return((Math.round((b-a)/604800000)%4)+4)%4}
+const isOff=ds=>OFF[weekNo(ds)].includes(new Date(ds+"T12:00:00").getDay());
+function hintText(ds){return "Week "+(weekNo(ds)+1)+" · "+(isOff(ds)?"scheduled day off, counts as a paid extra day":"working day")}
+let tab="work",ref=null,timer=null,mon=new Date().toISOString().slice(0,7);
+
+const $=s=>document.querySelector(s);
+const esc=t=>String(t==null?"":t).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const today=()=>new Date().toISOString().slice(0,10);
+const uid=()=>Math.random().toString(36).slice(2,9);
+const fmtH=h=>(h<0?"−":"")+Math.abs(Math.round(h*100)/100).toFixed(2).replace(/\.?0+$/,"")+" h";
+const fmtM=n=>(n<0?"−":"")+S.settings.cur+Math.abs(n).toFixed(2);
+const toMin=t=>{if(!t)return null;const[a,b]=t.split(":").map(Number);return a*60+b};
+function worked(e){const a=toMin(e.start),b=toMin(e.end);if(a==null||b==null)return 0;let m=b-a;if(m<0)m+=1440;return Math.max(0,(m-(+e.brk||0))/60)}
+const extra=e=>worked(e)-(isOff(e.date)?0:S.settings.target);
+
+/* ---------- storage: db (syncs across devices), localStorage fallback ---------- */
+function init(){
+  try{const raw=localStorage.getItem("dash");if(raw)S=Object.assign(S,JSON.parse(raw))}catch(e){}
+  if(!S.settings.anchor){S.settings.anchor="2026-11-02"}
+  setSt("Stored on this device");
+  render();
+}
+function setSt(t){$("#st").textContent=t}
+function save(){
+  render();
+  try{localStorage.setItem("dash",JSON.stringify(S));setSt("Saved on this device")}catch(e){setSt("Could not save")}
+}
+
+/* ---------- helpers ---------- */
+const openBal=()=>S.settings.open==null?10:+S.settings.open;
+function bankBalance(){
+  let h=openBal();
+  S.work.forEach(e=>{if(isOff(e.date))return;if(e.bank&&extra(e)>0)h+=extra(e)});
+  S.bank.forEach(b=>h+=+b.h);
+  return h;
+}
+const extraDays=p=>S.work.filter(e=>isOff(e.date)&&worked(e)>0&&e.date.startsWith(p)).length;
+function del(list,id){S[list]=S[list].filter(x=>x.id!==id);save()}
+window.del=del;
+
+/* ---------- views ---------- */
+function vWork(){
+  const bal=bankBalance();
+  const wk=new Date();wk.setDate(wk.getDate()-((wk.getDay()+6)%7));
+  const ws=wk.toISOString().slice(0,10);
+  const wh=S.work.filter(e=>e.date>=ws).reduce((a,e)=>a+worked(e),0);
+  const list=[...S.work].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,30);
+  return `<div class="stats"><div class="stat"><b>${fmtH(wh)}</b><span>This week</span></div><div class="stat"><b>${fmtH(bal)}</b><span>Hour bank</span></div></div>
+  <div class="card"><h2 style="margin-top:0">This week · Week ${weekNo(today())+1} of 4</h2><div style="display:flex;gap:4px">${strip()}</div></div>
+  <div class="card"><h2 style="margin-top:0">Log a day</h2>
+  <div class="row"><div><label>Date</label><input type="date" id="wd" value="${today()}" onchange="hint()"></div><div><label>Break (min)</label><input type="number" id="wb" value="60" inputmode="numeric"></div></div>
+  <div class="row"><div><label>Start</label><input type="time" id="ws" value="08:00"></div><div><label>End</label><input type="time" id="we" value="17:00"></div></div>
+  <label>Note</label><input id="wn" placeholder="Optional">
+  <div class="chk"><input type="checkbox" id="wk" checked><label for="wk" style="margin:0;font-size:14px;color:var(--tx)">Add extra hours to the bank</label></div>
+  <div id="wh" style="font-size:13px;color:var(--mu);margin-bottom:10px">${hintText(today())}</div>
+  <button class="p" onclick="addWork()">Save day</button></div>
+  <div class="card"><div class="row"><div><label>Normal hours per day</label><input type="number" step="0.25" value="${S.settings.target}" inputmode="decimal" onchange="S.settings.target=+this.value||8;save()"></div><div><label>This week of the cycle</label><select onchange="setCycle(+this.value)">${[1,2,3,4].map(n=>`<option value="${n}"${n===weekNo(today())+1?" selected":""}>Week ${n}</option>`).join("")}</select></div></div>
+  <small style="color:var(--mu)">W1: Tue + Sun off · W2: Sat + Sun · W3: Wed + Sun · W4: Sat + Sun</small></div>
+  <div class="card"><h2 style="margin-top:0">Backup</h2><p style="color:var(--mu);font-size:14px;margin:0 0 10px">Your data lives only in this browser. Download a backup now and then, because clearing browser data would erase it.</p><button class="p" onclick="exportData()">Download backup</button><div style="height:10px"></div><label>Restore from a backup file</label><input type="file" accept=".json,application/json" onchange="importData(this)"></div>
+  <h2>Recent days</h2><div class="card">${list.length?list.map(e=>{const x=extra(e);return `<div class="item"><div class="m"><b>${esc(e.date)}</b> · ${esc(e.start)}–${esc(e.end)}<small>${fmtH(worked(e))} worked${e.note?" · "+esc(e.note):""}</small></div>${isOff(e.date)?'<span class="pos">Extra day</span>':`<span class="${x>0?"pos":x<0?"neg":""}">${x>0?"+":""}${fmtH(x)}</span>`}<button class="x" onclick="del('work','${e.id}')">×</button></div>`}).join(""):'<div class="empty">No days logged yet</div>'}</div>`;
+}
+function strip(){const m=new Date(mondayStr(new Date())+"T12:00:00");let s="";for(let i=0;i<7;i++){const d=new Date(m);d.setDate(m.getDate()+i);const ds=d.toISOString().slice(0,10);const o=isOff(ds);s+=`<div style="flex:1;text-align:center;padding:8px 0;border-radius:10px;font-size:13px;${o?"background:var(--ac2);color:var(--ac);font-weight:600":""}${ds===today()?";outline:2px solid var(--ac)":""}">${"MTWTFSS"[i]}<br>${o?"Off":"Work"}</div>`}return s}
+window.hint=()=>{const d=$("#wd").value;$("#wh").textContent=d?hintText(d):""};
+window.setCycle=n=>{const m=new Date(mondayStr(new Date())+"T12:00:00");m.setDate(m.getDate()-7*(n-1));S.settings.anchor=m.toISOString().slice(0,10);save()};
+window.exportData=async()=>{const data=JSON.stringify(S,null,1),name="dashboard-backup-"+today()+".json";
+  try{const d=await claude.use("downloads");if(d){await d.save({filename:name,data});return}}catch(e){if(e&&e.code==="declined")return}
+  const b=new Blob([data],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();a.remove()};
+window.importData=inp=>{const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!d.settings||!Array.isArray(d.work))throw 0;if(!confirm("Replace everything on this device with this backup?"))return;S=Object.assign({settings:{target:8,cur:"\u20ac"},work:[],bank:[],days:[],money:[],games:[]},d);save()}catch(e){alert("That file is not a valid backup.")}};r.readAsText(f)};
+window.addWork=()=>{
+  const e={id:uid(),date:$("#wd").value,start:$("#ws").value,end:$("#we").value,brk:+$("#wb").value||0,note:$("#wn").value.trim(),bank:$("#wk").checked};
+  if(!e.date||!e.start||!e.end)return;
+  S.work.push(e);save();
+};
+
+function vBank(){
+  const man=S.bank.map(b=>({id:b.id,date:b.date,v:+b.h,note:b.note||"Manual entry"}));
+  const auto=S.work.filter(e=>!isOff(e.date)&&e.bank&&extra(e)>0).map(e=>({id:null,date:e.date,v:extra(e),note:"Overtime from work log"}));
+  const rows=[...man,...auto].sort((a,b)=>b.date.localeCompare(a.date));
+  const ym=today().slice(0,7),yy=today().slice(0,4);
+  return `<div class="stats"><div class="stat"><b>${fmtH(bankBalance())}</b><span>Hour bank</span></div><div class="stat"><b>${extraDays(ym)}</b><span>Extra days this month</span></div></div>
+  <p style="color:var(--mu);font-size:14px;margin:0 0 12px">Extra hours on normal days go into the bank automatically. Days worked on a day off are paid, so they are counted (${extraDays(yy)} this year) but not banked.</p>
+  <div class="card"><label>Opening balance (hours already in the bank)</label><input type="number" step="0.25" inputmode="decimal" value="${openBal()}" onchange="S.settings.open=+this.value||0;save()"></div>
+  <div class="card"><h2 style="margin-top:0">Hours</h2>
+  <div class="row"><div><label>Date</label><input type="date" id="bd" value="${today()}"></div><div><label>Hours (&minus; to spend)</label><input type="number" step="0.25" id="bh" inputmode="decimal" placeholder="e.g. -4"></div></div>
+  <label>Note</label><input id="bn" placeholder="Optional"><div style="height:10px"></div>
+  <button class="p" onclick="addBank()">Add hours entry</button></div>
+  <h2>History</h2><div class="card">${rows.length?rows.map(r=>`<div class="item"><div class="m"><b>${esc(r.date)}</b><small>${esc(r.note)}</small></div><span class="${r.v>=0?"pos":"neg"}">${r.v>0?"+":""}${fmtH(r.v)}</span>${r.id?`<button class="x" onclick="del('bank','${r.id}')">×</button>`:""}</div>`).join(""):'<div class="empty">No hour entries yet</div>'}</div>`;
+}
+window.addBank=()=>{const h=+$("#bh").value;if(!h||!$("#bd").value)return;S.bank.push({id:uid(),date:$("#bd").value,h,note:$("#bn").value.trim()});save()};
+
+function vMoney(){
+  const m=S.money.filter(x=>x.date.startsWith(mon));
+  const inc=m.filter(x=>x.type==="in").reduce((a,x)=>a+ +x.amt,0);
+  const out=m.filter(x=>x.type==="out").reduce((a,x)=>a+ +x.amt,0);
+  const by={};m.filter(x=>x.type==="out").forEach(x=>by[x.cat]=(by[x.cat]||0)+ +x.amt);
+  const cats=Object.entries(by).sort((a,b)=>b[1]-a[1]);
+  const list=[...m].sort((a,b)=>b.date.localeCompare(a.date));
+  return `<div class="row"><div><label>Month</label><input type="month" value="${mon}" onchange="mon=this.value||mon;render()"></div></div>
+  <div class="stats"><div class="stat"><b class="pos">${fmtM(inc)}</b><span>Income</span></div><div class="stat"><b class="neg">${fmtM(out)}</b><span>Expenses</span></div></div>
+  <div class="stat" style="margin-bottom:12px"><b class="${inc-out>=0?"pos":"neg"}">${fmtM(inc-out)}</b><span>Left this month</span></div>
+  <div class="card"><h2 style="margin-top:0">Add entry</h2>
+  <div class="row"><div><label>Type</label><select id="mt"><option value="out">Expense</option><option value="in">Income</option></select></div><div><label>Amount</label><input type="number" step="0.01" id="ma" inputmode="decimal"></div></div>
+  <div class="row"><div><label>Date</label><input type="date" id="md" value="${today()}"></div><div><label>Category</label><select id="mc">${CATS.map(c=>`<option>${c}</option>`).join("")}</select></div></div>
+  <label>Note</label><input id="mn" placeholder="Optional"><div style="height:10px"></div>
+  <button class="p" onclick="addMoney()">Save</button></div>
+  ${cats.length?`<h2>Spending by category</h2><div class="card">${cats.map(([c,v])=>`<div class="item"><div class="m">${esc(c)}</div><span>${fmtM(v)}</span></div>`).join("")}</div>`:""}
+  <h2>Entries</h2><div class="card">${list.length?list.map(x=>`<div class="item"><div class="m"><b>${esc(x.cat)}</b><small>${esc(x.date)}${x.note?" · "+esc(x.note):""}</small></div><span class="${x.type==="in"?"pos":"neg"}">${x.type==="in"?"+":"−"}${fmtM(+x.amt)}</span><button class="x" onclick="del('money','${x.id}')">×</button></div>`).join(""):'<div class="empty">Nothing this month</div>'}</div>`;
+}
+window.addMoney=()=>{const amt=+$("#ma").value;if(!amt||!$("#md").value)return;S.money.push({id:uid(),type:$("#mt").value,amt:Math.abs(amt),date:$("#md").value,cat:$("#mc").value,note:$("#mn").value.trim()});save()};
+
+function vGames(){
+  const cnt=s=>S.games.filter(g=>g.status===s).length;
+  return `<div class="stats"><div class="stat"><b>${cnt("Backlog")}</b><span>In backlog</span></div><div class="stat"><b>${cnt("Finished")}</b><span>Finished</span></div></div>
+  <div class="card"><h2 style="margin-top:0">Add a game</h2>
+  <label>Title</label><input id="gt"><div style="height:8px"></div>
+  <div class="row"><div><label>Platform</label><input id="gp" placeholder="PC, PS5…"></div><div><label>Status</label><select id="gs">${STAT.map(s=>`<option>${s}</option>`).join("")}</select></div></div>
+  <button class="p" onclick="addGame()">Add</button></div>
+  ${STAT.map(s=>{const l=S.games.filter(g=>g.status===s);if(!l.length)return"";return `<h2>${s} (${l.length})</h2><div class="card">${l.map(g=>`<div class="item"><div class="m"><b>${esc(g.title)}</b><small>${esc(g.platform||"")}</small></div><select style="width:auto" onchange="setGame('${g.id}',this.value)">${STAT.map(o=>`<option${o===g.status?" selected":""}>${o}</option>`).join("")}</select><button class="x" onclick="del('games','${g.id}')">×</button></div>`).join("")}</div>`}).join("")}
+  ${S.games.length?"":'<div class="empty">Your backlog is empty</div>'}`;
+}
+window.addGame=()=>{const t=$("#gt").value.trim();if(!t)return;S.games.push({id:uid(),title:t,platform:$("#gp").value.trim(),status:$("#gs").value});save()};
+window.setGame=(id,s)=>{const g=S.games.find(x=>x.id===id);if(g){g.status=s;save()}};
+
+function render(){
+  const y=window.scrollY;
+  $("#v").innerHTML={work:vWork,bank:vBank,money:vMoney,games:vGames}[tab]();
+  $("#nav").innerHTML=TABS.map(t=>`<button class="${t[0]===tab?"on":""}" onclick="go('${t[0]}')"><span>${t[1]}</span>${t[2]}</button>`).join("");
+  window.scrollTo(0,y);
+}
+window.go=t=>{tab=t;render();window.scrollTo(0,0);try{if(location.hash!=="#"+t)history.replaceState(null,"","#"+t)}catch(e){}};
+const h=location.hash.slice(1);if(TABS.some(t=>t[0]===h))tab=h;
+init();
+</script>
+</body>
+</html>
