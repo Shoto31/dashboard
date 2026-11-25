@@ -71,9 +71,9 @@ const CATS=["Salary","Other income","Housing","Food","Transport","Bills","Fun","
 const STAT=["Backlog","Playing","Finished","Dropped"];
 let S={settings:{target:8,cur:"€"},work:[],bank:[],days:[],money:[],games:[]};
 /* 4-week rotation (Mon–Sun weeks). getDay: Sun=0 Tue=2 Wed=3 Sat=6 */
-const OFF=[[2,0],[6,0],[3,0],[6,0]];
+const OFF=[[6,0],[3,0],[6,0],[2,6]];
 const mondayStr=d=>{const x=new Date(d);x.setHours(12,0,0,0);x.setDate(x.getDate()-((x.getDay()+6)%7));return x.toISOString().slice(0,10)};
-function weekNo(ds){const a=new Date((S.settings.anchor||"2026-11-02")+"T12:00:00"),b=new Date(mondayStr(new Date(ds+"T12:00:00"))+"T12:00:00");return((Math.round((b-a)/604800000)%4)+4)%4}
+function weekNo(ds){const a=new Date((S.settings.anchor||"2026-11-23")+"T12:00:00"),b=new Date(mondayStr(new Date(ds+"T12:00:00"))+"T12:00:00");return((Math.round((b-a)/604800000)%4)+4)%4}
 const isOff=ds=>OFF[weekNo(ds)].includes(new Date(ds+"T12:00:00").getDay());
 function hintText(ds){return "Week "+(weekNo(ds)+1)+" · "+(isOff(ds)?"scheduled day off, counts as a paid extra day":"working day")}
 let tab="work",ref=null,timer=null,mon=new Date().toISOString().slice(0,7);
@@ -96,7 +96,7 @@ const extra=e=>worked(e)-(isOff(e.date)?0:S.settings.target);
 /* ---------- storage: db (syncs across devices), localStorage fallback ---------- */
 function init(){
   try{const raw=localStorage.getItem("dash");if(raw)S=Object.assign(S,JSON.parse(raw))}catch(e){}
-  if(!S.settings.anchor){S.settings.anchor="2026-11-02"}
+  if(!S.settings.anchor || S.settings.anchor==="2026-11-02"){S.settings.anchor="2026-11-23"}
   if(!S.settings.from){S.settings.from=mondayStr(new Date())}
   setSt("Stored on this device");
   render();
@@ -165,7 +165,7 @@ function vWork(){
   <h2>Last 14 days</h2><div class="card">${rows||'<div class="empty">Nothing counted yet</div>'}</div>
   <div class="card"><div class="row"><div><label>Normal hours per day</label><input type="number" step="0.25" value="${S.settings.target}" inputmode="decimal" onchange="S.settings.target=+this.value||8;save()"></div><div><label>This week of the cycle</label><select onchange="setCycle(+this.value)">${[1,2,3,4].map(n=>`<option value="${n}"${n===weekNo(t)+1?" selected":""}>Week ${n}</option>`).join("")}</select></div></div>
   <div class="row"><div><label>Count normal days from</label><input type="date" value="${S.settings.from||""}" onchange="S.settings.from=this.value||S.settings.from;save()"></div></div>
-  <small style="color:var(--mu)">W1: Tue + Sun off \u00b7 W2: Sat + Sun \u00b7 W3: Wed + Sun \u00b7 W4: Sat + Sun</small></div>
+  <small style="color:var(--mu)">W1: Sat + Sun off \u00b7 W2: Wed + Sun \u00b7 W3: Sat + Sun \u00b7 W4: Tue + Sat</small></div>
   <div class="card"><h2 style="margin-top:0">Backup</h2><p style="color:var(--mu);font-size:14px;margin:0 0 10px">Your data lives only in this browser. Download a backup now and then, because clearing browser data would erase it.</p><button class="p" onclick="exportData()">Download backup</button><div style="height:10px"></div><label>Restore from a backup file</label><input type="file" accept=".json,application/json" onchange="importData(this)"></div>`;
 }
 function strip(){const m=new Date(mondayStr(new Date())+"T12:00:00");let s="";for(let i=0;i<7;i++){const d=new Date(m);d.setDate(m.getDate()+i);const ds=d.toISOString().slice(0,10);const o=isOff(ds);s+=`<div style="flex:1;text-align:center;padding:8px 0;border-radius:10px;font-size:13px;${o?"background:var(--ac2);color:var(--ac);font-weight:600":""}${ds===today()?";outline:2px solid var(--ac)":""}">${"MTWTFSS"[i]}<br>${o?"Off":"Work"}</div>`}return s}
