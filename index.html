@@ -80,9 +80,14 @@ let tab="work",ref=null,timer=null,mon=new Date().toISOString().slice(0,7);
 
 const $=s=>document.querySelector(s);
 const esc=t=>String(t==null?"":t).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const today=()=>new Date().toISOString().slice(0,10);
+const ld=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+const today=()=>ld(new Date());
+const addDays=(ds,n)=>{const d=new Date(ds+"T12:00:00");d.setDate(d.getDate()+n);return ld(d)};
+const lastDay=()=>{const n=new Date();if(n.getHours()<17)n.setDate(n.getDate()-1);return ld(n)};
 const uid=()=>Math.random().toString(36).slice(2,9);
-const fmtH=h=>(h<0?"−":"")+Math.abs(Math.round(h*100)/100).toFixed(2).replace(/\.?0+$/,"")+" h";
+const hm=h=>{const t=Math.round(Math.abs(h)*60);return (h<0&&t>0?"\u2212":"")+Math.floor(t/60)+":"+String(t%60).padStart(2,"0")};
+const fmtH=h=>hm(h)+" h";
+function parseH(v){v=String(v||"").trim().replace(",",".");if(!v)return NaN;const neg=/^[-\u2212]/.test(v);v=v.replace(/^[-+\u2212]/,"");let r;if(v.includes(":")){const p=v.split(":");if(!/^\d*$/.test(p[0])||!/^\d{1,2}$/.test(p[1]||"0")||+p[1]>59)return NaN;r=(+p[0]||0)+(+p[1]||0)/60}else{r=Number(v)}if(isNaN(r))return NaN;return neg?-r:r}
 const fmtM=n=>(n<0?"−":"")+S.settings.cur+Math.abs(n).toFixed(2);
 const toMin=t=>{if(!t)return null;const[a,b]=t.split(":").map(Number);return a*60+b};
 function worked(e){const a=toMin(e.start),b=toMin(e.end);if(a==null||b==null)return 0;let m=b-a;if(m<0)m+=1440;return Math.max(0,(m-(+e.brk||0))/60)}
@@ -92,6 +97,7 @@ const extra=e=>worked(e)-(isOff(e.date)?0:S.settings.target);
 function init(){
   try{const raw=localStorage.getItem("dash");if(raw)S=Object.assign(S,JSON.parse(raw))}catch(e){}
   if(!S.settings.anchor){S.settings.anchor="2026-11-02"}
+  if(!S.settings.from){S.settings.from=mondayStr(new Date())}
   setSt("Stored on this device");
   render();
 }
@@ -114,27 +120,56 @@ function del(list,id){S[list]=S[list].filter(x=>x.id!==id);save()}
 window.del=del;
 
 /* ---------- views ---------- */
+/* A day is automatic (normal shift) unless an exception was logged for that date */
+function dayRec(ds){
+  const e=S.work.find(x=>x.date===ds);
+  if(e)return e.abs?{h:0,k:"abs",e}:{h:worked(e),k:"log",e};
+  const from=S.settings.from||"9999-12-31";
+  if(ds<from||ds>lastDay())return{h:0,k:"none"};
+  return isOff(ds)?{h:0,k:"off"}:{h:S.settings.target,k:"auto"};
+}
+function hoursRange(a,b){let h=0;for(let d=a,i=0;d<=b&&i<400;d=addDays(d,1),i++)h+=dayRec(d).h;return h}
+function dayRow(ds){
+  const r=dayRec(ds),e=r.e;
+  const wd=new Date(ds+"T12:00:00").toLocaleDateString("en-GB",{weekday:"short"});
+  let sub,val,del="";
+  if(r.k==="log"){
+    const x=extra(e);
+    sub=esc(e.start)+"\u2013"+esc(e.end)+" \u00b7 "+fmtH(r.h)+(e.note?" \u00b7 "+esc(e.note):"");
+    val=isOff(ds)?'<span class="pos">Extra day</span>':`<span class="${x>0?"pos":x<0?"neg":""}">${x>0?"+":""}${fmtH(x)}</span>`;
+    del=`<button class="x" onclick="del('work','${e.id}')">\u00d7</button>`;
+  }else if(r.k==="abs"){
+    sub="Not worked"+(e.note?" \u00b7 "+esc(e.note):"");val='<span style="color:var(--mu)">\u2014</span>';
+    del=`<button class="x" onclick="del('work','${e.id}')">\u00d7</button>`;
+  }else if(r.k==="off"){sub="Day off";val='<span style="color:var(--mu)">off</span>'}
+  else if(r.k==="auto"){sub="Normal day \u00b7 "+fmtH(r.h);val='<span style="color:var(--mu)">auto</span>'}
+  else if(ds===today()){sub=isOff(ds)?"Day off":"Working day \u00b7 counts after 17:00";val='<span style="color:var(--mu)">today</span>'}
+  else return"";
+  return `<div class="item"><div class="m"><b>${wd} ${esc(ds)}</b><small>${sub}</small></div>${val}${del}</div>`;
+}
 function vWork(){
-  const bal=bankBalance();
-  const wk=new Date();wk.setDate(wk.getDate()-((wk.getDay()+6)%7));
-  const ws=wk.toISOString().slice(0,10);
-  const wh=S.work.filter(e=>e.date>=ws).reduce((a,e)=>a+worked(e),0);
-  const list=[...S.work].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,30);
+  const bal=bankBalance(),t=today(),mon=mondayStr(new Date()),ym=t.slice(0,7);
+  const wh=hoursRange(mon,addDays(mon,6)),mh=hoursRange(ym+"-01",ym+"-31");
+  let rows="";for(let i=0;i<14;i++)rows+=dayRow(addDays(t,-i));
   return `<div class="stats"><div class="stat"><b>${fmtH(wh)}</b><span>This week</span></div><div class="stat"><b>${fmtH(bal)}</b><span>Hour bank</span></div></div>
-  <div class="card"><h2 style="margin-top:0">This week · Week ${weekNo(today())+1} of 4</h2><div style="display:flex;gap:4px">${strip()}</div></div>
-  <div class="card"><h2 style="margin-top:0">Log a day</h2>
-  <div class="row"><div><label>Date</label><input type="date" id="wd" value="${today()}" onchange="hint()"></div><div><label>Break (min)</label><input type="number" id="wb" value="60" inputmode="numeric"></div></div>
-  <div class="row"><div><label>Start</label><input type="time" id="ws" value="08:00"></div><div><label>End</label><input type="time" id="we" value="17:00"></div></div>
-  <label>Note</label><input id="wn" placeholder="Optional">
-  <div class="chk"><input type="checkbox" id="wk" checked><label for="wk" style="margin:0;font-size:14px;color:var(--tx)">Add extra hours to the bank</label></div>
-  <div id="wh" style="font-size:13px;color:var(--mu);margin-bottom:10px">${hintText(today())}</div>
-  <button class="p" onclick="addWork()">Save day</button></div>
-  <div class="card"><div class="row"><div><label>Normal hours per day</label><input type="number" step="0.25" value="${S.settings.target}" inputmode="decimal" onchange="S.settings.target=+this.value||8;save()"></div><div><label>This week of the cycle</label><select onchange="setCycle(+this.value)">${[1,2,3,4].map(n=>`<option value="${n}"${n===weekNo(today())+1?" selected":""}>Week ${n}</option>`).join("")}</select></div></div>
-  <small style="color:var(--mu)">W1: Tue + Sun off · W2: Sat + Sun · W3: Wed + Sun · W4: Sat + Sun</small></div>
-  <div class="card"><h2 style="margin-top:0">Backup</h2><p style="color:var(--mu);font-size:14px;margin:0 0 10px">Your data lives only in this browser. Download a backup now and then, because clearing browser data would erase it.</p><button class="p" onclick="exportData()">Download backup</button><div style="height:10px"></div><label>Restore from a backup file</label><input type="file" accept=".json,application/json" onchange="importData(this)"></div>
-  <h2>Recent days</h2><div class="card">${list.length?list.map(e=>{const x=extra(e);return `<div class="item"><div class="m"><b>${esc(e.date)}</b> · ${esc(e.start)}–${esc(e.end)}<small>${fmtH(worked(e))} worked${e.note?" · "+esc(e.note):""}</small></div>${isOff(e.date)?'<span class="pos">Extra day</span>':`<span class="${x>0?"pos":x<0?"neg":""}">${x>0?"+":""}${fmtH(x)}</span>`}<button class="x" onclick="del('work','${e.id}')">×</button></div>`}).join(""):'<div class="empty">No days logged yet</div>'}</div>`;
+  <p style="color:var(--mu);font-size:13px;margin:-2px 0 12px">This month: ${fmtH(mh)} \u00b7 Extra days: ${extraDays(ym)}</p>
+  <div class="card"><h2 style="margin-top:0">This week \u00b7 Week ${weekNo(t)+1} of 4</h2><div style="display:flex;gap:4px">${strip()}</div></div>
+  <div class="card"><h2 style="margin-top:0">Log an exception</h2>
+  <p style="color:var(--mu);font-size:13px;margin:0 0 10px">Normal days count automatically. Only add days that were different.</p>
+  <div class="row"><div><label>Date</label><input type="date" id="wd" value="${t}" onchange="hint()"></div><div><label>What happened</label><select id="wt" onchange="wtype()"><option value="hours">Worked different hours</option><option value="abs">Did not work</option></select></div></div>
+  <div id="wtimes"><div class="row"><div><label>Start</label><input type="time" id="ws" value="08:00"></div><div><label>End</label><input type="time" id="we" value="17:00"></div><div><label>Break (min)</label><input type="number" id="wb" value="60" inputmode="numeric"></div></div></div>
+  <label>Note</label><input id="wn" placeholder="e.g. stayed late, holiday, sick">
+  <div class="chk" id="wbk"><input type="checkbox" id="wk" checked><label for="wk" style="margin:0;font-size:14px;color:var(--tx)">Add extra hours to the bank</label></div>
+  <div id="wh" style="font-size:13px;color:var(--mu);margin-bottom:10px">${hintText(t)}</div>
+  <button class="p" onclick="addWork()">Save exception</button></div>
+  <h2>Last 14 days</h2><div class="card">${rows||'<div class="empty">Nothing counted yet</div>'}</div>
+  <div class="card"><div class="row"><div><label>Normal hours per day</label><input type="number" step="0.25" value="${S.settings.target}" inputmode="decimal" onchange="S.settings.target=+this.value||8;save()"></div><div><label>This week of the cycle</label><select onchange="setCycle(+this.value)">${[1,2,3,4].map(n=>`<option value="${n}"${n===weekNo(t)+1?" selected":""}>Week ${n}</option>`).join("")}</select></div></div>
+  <div class="row"><div><label>Count normal days from</label><input type="date" value="${S.settings.from||""}" onchange="S.settings.from=this.value||S.settings.from;save()"></div></div>
+  <small style="color:var(--mu)">W1: Tue + Sun off \u00b7 W2: Sat + Sun \u00b7 W3: Wed + Sun \u00b7 W4: Sat + Sun</small></div>
+  <div class="card"><h2 style="margin-top:0">Backup</h2><p style="color:var(--mu);font-size:14px;margin:0 0 10px">Your data lives only in this browser. Download a backup now and then, because clearing browser data would erase it.</p><button class="p" onclick="exportData()">Download backup</button><div style="height:10px"></div><label>Restore from a backup file</label><input type="file" accept=".json,application/json" onchange="importData(this)"></div>`;
 }
 function strip(){const m=new Date(mondayStr(new Date())+"T12:00:00");let s="";for(let i=0;i<7;i++){const d=new Date(m);d.setDate(m.getDate()+i);const ds=d.toISOString().slice(0,10);const o=isOff(ds);s+=`<div style="flex:1;text-align:center;padding:8px 0;border-radius:10px;font-size:13px;${o?"background:var(--ac2);color:var(--ac);font-weight:600":""}${ds===today()?";outline:2px solid var(--ac)":""}">${"MTWTFSS"[i]}<br>${o?"Off":"Work"}</div>`}return s}
+window.wtype=()=>{const a=$("#wt").value==="abs";$("#wtimes").style.display=a?"none":"";$("#wbk").style.display=a?"none":""};
 window.hint=()=>{const d=$("#wd").value;$("#wh").textContent=d?hintText(d):""};
 window.setCycle=n=>{const m=new Date(mondayStr(new Date())+"T12:00:00");m.setDate(m.getDate()-7*(n-1));S.settings.anchor=m.toISOString().slice(0,10);save()};
 window.exportData=async()=>{const data=JSON.stringify(S,null,1),name="dashboard-backup-"+today()+".json";
@@ -142,9 +177,11 @@ window.exportData=async()=>{const data=JSON.stringify(S,null,1),name="dashboard-
   const b=new Blob([data],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();a.remove()};
 window.importData=inp=>{const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!d.settings||!Array.isArray(d.work))throw 0;if(!confirm("Replace everything on this device with this backup?"))return;S=Object.assign({settings:{target:8,cur:"\u20ac"},work:[],bank:[],days:[],money:[],games:[]},d);save()}catch(e){alert("That file is not a valid backup.")}};r.readAsText(f)};
 window.addWork=()=>{
-  const e={id:uid(),date:$("#wd").value,start:$("#ws").value,end:$("#we").value,brk:+$("#wb").value||0,note:$("#wn").value.trim(),bank:$("#wk").checked};
-  if(!e.date||!e.start||!e.end)return;
-  S.work.push(e);save();
+  const date=$("#wd").value;if(!date)return;
+  const e={id:uid(),date,note:$("#wn").value.trim()};
+  if($("#wt").value==="abs"){e.abs=true}
+  else{e.start=$("#ws").value;e.end=$("#we").value;e.brk=+$("#wb").value||0;e.bank=$("#wk").checked;if(!e.start||!e.end)return}
+  S.work=S.work.filter(x=>x.date!==date);S.work.push(e);save();
 };
 
 function vBank(){
@@ -154,14 +191,15 @@ function vBank(){
   const ym=today().slice(0,7),yy=today().slice(0,4);
   return `<div class="stats"><div class="stat"><b>${fmtH(bankBalance())}</b><span>Hour bank</span></div><div class="stat"><b>${extraDays(ym)}</b><span>Extra days this month</span></div></div>
   <p style="color:var(--mu);font-size:14px;margin:0 0 12px">Extra hours on normal days go into the bank automatically. Days worked on a day off are paid, so they are counted (${extraDays(yy)} this year) but not banked.</p>
-  <div class="card"><label>Opening balance (hours already in the bank)</label><input type="number" step="0.25" inputmode="decimal" value="${openBal()}" onchange="S.settings.open=+this.value||0;save()"></div>
+  <div class="card"><label>Opening balance (hours:minutes, e.g. 10:05)</label><input type="text" placeholder="e.g. 10:05" value="${hm(openBal())}" onchange="setOpen(this.value)"></div>
   <div class="card"><h2 style="margin-top:0">Hours</h2>
-  <div class="row"><div><label>Date</label><input type="date" id="bd" value="${today()}"></div><div><label>Hours (&minus; to spend)</label><input type="number" step="0.25" id="bh" inputmode="decimal" placeholder="e.g. -4"></div></div>
+  <div class="row"><div><label>Date</label><input type="date" id="bd" value="${today()}"></div><div><label>Time (&minus; to spend)</label><input type="text" id="bh" placeholder="e.g. -1:30 or 2:15"></div></div>
   <label>Note</label><input id="bn" placeholder="Optional"><div style="height:10px"></div>
   <button class="p" onclick="addBank()">Add hours entry</button></div>
   <h2>History</h2><div class="card">${rows.length?rows.map(r=>`<div class="item"><div class="m"><b>${esc(r.date)}</b><small>${esc(r.note)}</small></div><span class="${r.v>=0?"pos":"neg"}">${r.v>0?"+":""}${fmtH(r.v)}</span>${r.id?`<button class="x" onclick="del('bank','${r.id}')">×</button>`:""}</div>`).join(""):'<div class="empty">No hour entries yet</div>'}</div>`;
 }
-window.addBank=()=>{const h=+$("#bh").value;if(!h||!$("#bd").value)return;S.bank.push({id:uid(),date:$("#bd").value,h,note:$("#bn").value.trim()});save()};
+window.setOpen=v=>{const x=parseH(v);if(!isNaN(x))S.settings.open=x;save()};
+window.addBank=()=>{const h=parseH($("#bh").value);if(!h||isNaN(h)||!$("#bd").value)return;S.bank.push({id:uid(),date:$("#bd").value,h,note:$("#bn").value.trim()});save()};
 
 function vMoney(){
   const m=S.money.filter(x=>x.date.startsWith(mon));
