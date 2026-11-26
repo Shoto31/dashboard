@@ -81,7 +81,7 @@ let S={settings:{target:8,cur:"€"},work:[],bank:[],days:[],money:[],games:[],b
 /* 4-week rotation (Mon–Sun weeks). getDay: Sun=0 Tue=2 Wed=3 Sat=6 */
 const OFF=[[2,0],[6,0],[3,0],[6,0]];
 const mondayStr=d=>{const x=new Date(d);x.setHours(12,0,0,0);x.setDate(x.getDate()-((x.getDay()+6)%7));return x.toISOString().slice(0,10)};
-function weekNo(ds){const a=new Date((S.settings.anchor||"2026-11-02")+"T12:00:00"),b=new Date(mondayStr(new Date(ds+"T12:00:00"))+"T12:00:00");return((Math.round((b-a)/604800000)%4)+4)%4}
+function weekNo(ds){const a=new Date((S.settings.anchor||"2026-11-16")+"T12:00:00"),b=new Date(mondayStr(new Date(ds+"T12:00:00"))+"T12:00:00");return((Math.round((b-a)/604800000)%4)+4)%4}
 const isOff=ds=>OFF[weekNo(ds)].includes(new Date(ds+"T12:00:00").getDay());
 function hintText(ds){return "Week "+(weekNo(ds)+1)+" · "+(isOff(ds)?"scheduled day off, counts as a paid extra day":"working day")}
 let tab="work",ref=null,timer=null,mon=new Date().toISOString().slice(0,7);
@@ -104,9 +104,9 @@ const extra=e=>worked(e)-(isOff(e.date)?0:S.settings.target);
 /* ---------- storage: db (syncs across devices), localStorage fallback ---------- */
 function init(){
   try{const raw=localStorage.getItem("dash");if(raw)S=Object.assign(S,JSON.parse(raw))}catch(e){}
-  if(!S.settings.anchor){S.settings.anchor="2026-11-02"}
+  let mig=false;if(!S.settings.anchor||S.settings.ver!==2){S.settings.anchor="2026-11-16";S.settings.ver=2;mig=true}
   if(!S.settings.from){S.settings.from=mondayStr(new Date())}
-  norm();if(applyRecur())save();
+  norm();if(applyRecur()||mig)save();
   setSt("Stored on this device");
   render();
 }
