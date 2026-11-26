@@ -50,6 +50,16 @@ nav button.on span{filter:none}
 #st{font-size:12px;font-weight:400;color:var(--mu);float:right;margin-top:6px}
 .chk{display:flex;align-items:center;gap:8px;margin:6px 0 10px;font-size:14px}
 .chk input{width:auto;accent-color:#8fb4ff}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal i{font-style:normal;text-align:center;font-size:11px;color:var(--mu)}
+.cd{aspect-ratio:1;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;background:var(--bg);border:1px solid var(--bd);cursor:pointer}
+.cd.of{color:var(--mu);background:transparent;border-style:dashed}
+.cd.no{color:var(--mu);opacity:.55}
+.cd.ot{border-color:var(--ac);color:var(--ac)}
+.cd.xd{border-color:var(--pos);color:var(--pos);background:rgba(125,219,165,.1)}
+.cd.ab{border-color:var(--neg);color:var(--neg)}
+.cd.tdy{outline:2px solid var(--tx);outline-offset:1px}
+#toast{display:none;position:fixed;left:50%;transform:translateX(-50%);bottom:calc(78px + env(safe-area-inset-bottom,0px));z-index:12;background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:8px 8px 8px 14px;align-items:center;gap:10px;font-size:14px;box-shadow:0 4px 20px rgba(0,0,0,.5)}
 </style>
 </head>
 <body>
@@ -58,9 +68,10 @@ nav button.on span{filter:none}
   <div id="v"></div>
 </main>
 <nav id="nav"></nav>
+<div id="toast"></div>
 
 <script>
-const TABS=[["work","🕒","Work"],["bank","⏳","Bank"],["money","💶","Money"],["games","🎮","Games"]];
+const TABS=[["work","🕒","Work"],["cal","📅","Calendar"],["bank","⏳","Bank"],["money","💶","Money"],["games","🎮","Games"]];
 const CATS=["Salary","Other income","Housing","Food","Transport","Bills","Fun","Health","Other"];
 const STAT=["Backlog","Playing","Finished","Dropped"];
 let S={settings:{target:8,cur:"€"},work:[],bank:[],days:[],money:[],games:[]};
@@ -111,9 +122,43 @@ function bankBalance(){
 }
 const extraHoursTotal=()=>S.work.filter(e=>!e.abs&&!isOff(e.date)&&extra(e)>0).reduce((a,e)=>a+extra(e),0);
 const extraDays=p=>S.work.filter(e=>isOff(e.date)&&worked(e)>0&&e.date.startsWith(p)).length;
-function del(list,id){S[list]=S[list].filter(x=>x.id!==id);save()}
+let undoData=null,tt=null;
+function toast(msg,noUndo){const t=$("#toast");t.innerHTML=esc(msg)+(noUndo?"":' <button class="g" onclick="undo()">Undo</button>');t.style.display="flex";clearTimeout(tt);tt=setTimeout(()=>{t.style.display="none";undoData=null},6000)}
+function del(list,id){const i=S[list].findIndex(x=>x.id===id);if(i<0)return;undoData={list,item:S[list][i],i};S[list].splice(i,1);save();toast("Deleted")}
+window.undo=()=>{if(!undoData)return;const u=undoData;undoData=null;S[u.list].splice(u.i,0,u.item);save();toast("Restored",1)};
 window.del=del;
 
+let wEdit=null,mEdit=null,gEdit=null,cal=today().slice(0,7);
+const setv=(id,v)=>{const e=$(id);if(e)e.value=v};
+const btn=(id,t)=>{const b=$(id);if(b)b.textContent=t};
+window.editWork=id=>{const e=S.work.find(x=>x.id===id);if(!e)return;tab="work";render();wEdit=id;
+  setv("#wd",e.date);setv("#wt",e.abs?"abs":"hours");setv("#ws",e.start||"08:00");setv("#we",e.end||"17:00");setv("#wb",e.brk==null?60:e.brk);setv("#wn",e.note||"");
+  const k=$("#wk");if(k)k.checked=e.bank!==false;wtype();hint();btn("#wsave","Update exception");$("#wd").scrollIntoView({block:"center"})};
+window.editMoney=id=>{const x=S.money.find(m=>m.id===id);if(!x)return;tab="money";render();mEdit=id;
+  setv("#mt",x.type);setv("#ma",x.amt);setv("#md",x.date);setv("#mc",x.cat);setv("#mn",x.note||"");btn("#msave","Update entry");$("#ma").scrollIntoView({block:"center"})};
+window.editGame=id=>{const g=S.games.find(m=>m.id===id);if(!g)return;tab="games";render();gEdit=id;
+  setv("#gt",g.title);setv("#gp",g.platform||"");setv("#gs",g.status);btn("#gsave","Update game");$("#gt").scrollIntoView({block:"center"})};
+function calCls(ds){const r=dayRec(ds),off=isOff(ds);
+  if(r.k==="abs")return"ab";
+  if(r.k==="log")return off?"xd":(extra(r.e)>0?"ot":"nm");
+  if(r.k==="auto")return"nm";
+  return off?"of":"no"}
+function vCal(){
+  const[y,m]=cal.split("-").map(Number),lead=(new Date(y,m-1,1).getDay()+6)%7,dim=new Date(y,m,0).getDate();
+  let c="MTWTFSS".split("").map(l=>`<i>${l}</i>`).join("")+"<div></div>".repeat(lead);
+  for(let d=1;d<=dim;d++){const ds=cal+"-"+String(d).padStart(2,"0");c+=`<div class="cd ${calCls(ds)}${ds===today()?" tdy":""}" onclick="pickDay('${ds}')">${d}</div>`}
+  const name=new Date(y,m-1,1).toLocaleDateString("en-GB",{month:"long",year:"numeric"});
+  return `<div class="card"><div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><button class="g" onclick="calGo(-1)">\u2039</button><b style="flex:1;text-align:center">${name}</b><button class="g" onclick="calGo(1)">\u203a</button></div><div class="cal">${c}</div>
+  <p style="color:var(--mu);font-size:12px;margin:10px 0 0">Blue: overtime \u00b7 Green: extra day \u00b7 Red: not worked \u00b7 Dashed: day off. Tap a day to log or edit it.</p></div>`;
+}
+function vCalTab(){
+  return `<h2 style="margin-top:0">Calendar</h2>${vCal()}
+  <div class="stats"><div class="stat"><b>${fmtH(hoursRange(cal+"-01",cal+"-31"))}</b><span>Hours this month</span></div><div class="stat"><b>${extraDays(cal)}</b><span>Extra days this month</span></div></div>`;
+}
+window.calGo=n=>{const[y,m]=cal.split("-").map(Number),d=new Date(y,m-1+n,1);cal=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");render()};
+window.pickDay=ds=>{const e=S.work.find(x=>x.date===ds);if(e){editWork(e.id);return}tab="work";render();setv("#wd",ds);setv("#wt","hours");wtype();hint();$("#wd").scrollIntoView({block:"center"})};
+const dataCount=()=>S.work.length+S.bank.length+S.money.length+S.games.length;
+function backupDue(){if(!dataCount())return false;const lb=S.settings.lastBackup;if(!lb)return true;return(new Date(today()+"T12:00:00")-new Date(lb+"T12:00:00"))/864e5>30}
 /* ---------- views ---------- */
 /* A day is automatic (normal shift) unless an exception was logged for that date */
 function dayRec(ds){
@@ -140,7 +185,7 @@ function dayRow(ds){
   else if(r.k==="auto"){sub="Normal day \u00b7 "+fmtH(r.h);val='<span style="color:var(--mu)">auto</span>'}
   else if(ds===today()){sub=isOff(ds)?"Day off":"Working day \u00b7 counts after 17:00";val='<span style="color:var(--mu)">today</span>'}
   else return"";
-  return `<div class="item"><div class="m"><b>${wd} ${esc(ds)}</b><small>${sub}</small></div>${val}${del}</div>`;
+  return `<div class="item"><div class="m"${e?` onclick="editWork('${e.id}')" style="cursor:pointer"`:""}><b>${wd} ${esc(ds)}</b><small>${sub}</small></div>${val}${del}</div>`;
 }
 function vWork(){
   const bal=bankBalance(),t=today(),mon=mondayStr(new Date()),ym=t.slice(0,7);
@@ -156,27 +201,41 @@ function vWork(){
   <label>Note</label><input id="wn" placeholder="e.g. stayed late, holiday, sick">
   <div class="chk" id="wbk"><input type="checkbox" id="wk" checked><label for="wk" style="margin:0;font-size:14px;color:var(--tx)">Add extra hours to the bank</label></div>
   <div id="wh" style="font-size:13px;color:var(--mu);margin-bottom:10px">${hintText(t)}</div>
-  <button class="p" onclick="addWork()">Save exception</button></div>
+  <button class="p" id="wsave" onclick="addWork()">Save exception</button></div>
   <h2>Last 14 days</h2><div class="card">${rows||'<div class="empty">Nothing counted yet</div>'}</div>
   <div class="card"><div class="row"><div><label>Normal hours per day</label><input type="number" step="0.25" value="${S.settings.target}" inputmode="decimal" onchange="S.settings.target=+this.value||8;save()"></div><div><label>This week of the cycle</label><select onchange="setCycle(+this.value)">${[1,2,3,4].map(n=>`<option value="${n}"${n===weekNo(t)+1?" selected":""}>Week ${n}</option>`).join("")}</select></div></div>
   <div class="row"><div><label>Count normal days from</label><input type="date" value="${S.settings.from||""}" onchange="S.settings.from=this.value||S.settings.from;save()"></div></div>
   <small style="color:var(--mu)">W1: Tue + Sun off \u00b7 W2: Sat + Sun \u00b7 W3: Wed + Sun \u00b7 W4: Sat + Sun</small></div>
-  <div class="card"><h2 style="margin-top:0">Backup</h2><p style="color:var(--mu);font-size:14px;margin:0 0 10px">Your data lives only in this browser. Download a backup now and then, because clearing browser data would erase it.</p><button class="p" onclick="exportData()">Download backup</button><div style="height:10px"></div><label>Restore from a backup file</label><input type="file" accept=".json,application/json" onchange="importData(this)"></div>`;
+  <div class="card"${backupDue()?' style="border-color:var(--neg)"':""}><h2 style="margin-top:0">${backupDue()?"Time for a backup":"Backup"}</h2><p style="color:var(--mu);font-size:14px;margin:0 0 10px">Your data lives only in this browser. Download a backup now and then, because clearing browser data would erase it. Last backup: ${S.settings.lastBackup||"never"}.</p><button class="p" onclick="exportData()">Download backup</button><div style="height:10px"></div><label>Restore from a backup file</label><input type="file" accept=".json,application/json" onchange="importData(this)"><div style="height:14px"></div><label>Export as spreadsheet (CSV)</label><div class="row"><select id="csvk"><option value="work">Work days</option><option value="bank">Hour bank</option><option value="money">Money</option><option value="games">Games</option></select><button class="p" onclick="exportCsv()">Download CSV</button></div></div>`;
 }
 function strip(){const m=new Date(mondayStr(new Date())+"T12:00:00");let s="";for(let i=0;i<7;i++){const d=new Date(m);d.setDate(m.getDate()+i);const ds=d.toISOString().slice(0,10);const o=isOff(ds);s+=`<div style="flex:1;text-align:center;padding:8px 0;border-radius:10px;font-size:13px;${o?"background:var(--ac2);color:var(--ac);font-weight:600":""}${ds===today()?";outline:2px solid var(--ac)":""}">${"MTWTFSS"[i]}<br>${o?"Off":"Work"}</div>`}return s}
 window.wtype=()=>{const a=$("#wt").value==="abs";$("#wtimes").style.display=a?"none":"";$("#wbk").style.display=a?"none":""};
 window.hint=()=>{const d=$("#wd").value;$("#wh").textContent=d?hintText(d):""};
 window.setCycle=n=>{const m=new Date(mondayStr(new Date())+"T12:00:00");m.setDate(m.getDate()-7*(n-1));S.settings.anchor=m.toISOString().slice(0,10);save()};
-window.exportData=async()=>{const data=JSON.stringify(S,null,1),name="dashboard-backup-"+today()+".json";
-  try{const d=await claude.use("downloads");if(d){await d.save({filename:name,data});return}}catch(e){if(e&&e.code==="declined")return}
-  const b=new Blob([data],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();a.remove()};
+async function saveFile(name,data,type){
+  try{const d=await claude.use("downloads");if(d){await d.save({filename:name,data});return true}}catch(e){if(e&&e.code==="declined")return false}
+  const b=new Blob([data],{type});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();a.remove();return true}
+window.exportData=async()=>{if(await saveFile("dashboard-backup-"+today()+".json",JSON.stringify(S,null,1),"application/json")){S.settings.lastBackup=today();save()}};
+const csvq=v=>{v=String(v==null?"":v);return/[",\n;]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
+function csvRows(k){
+  if(k==="work"){const rows=[["date","status","hours_worked","extra_hours","note"]];
+    const a=[...S.work.map(e=>e.date),S.settings.from||"9999"].sort()[0],z=[lastDay(),...S.work.map(e=>e.date)].sort().pop();
+    for(let d=a,i=0;d<=z&&i<4000;d=addDays(d,1),i++){const r=dayRec(d);if(r.k==="none")continue;
+      const st=r.k==="abs"?"not worked":r.k==="off"?"day off":r.k==="auto"?"normal day":isOff(d)?"extra day":"logged";
+      const ex=r.k==="log"&&!isOff(d)?extra(r.e):0;
+      rows.push([d,st,Math.round(r.h*100)/100,Math.round(ex*100)/100,(r.e&&r.e.note)||""])}
+    return rows}
+  if(k==="bank"){return[["date","hours","note"],...[...S.bank.map(b=>[b.date,Math.round(+b.h*100)/100,b.note||"Manual entry"]),...S.work.filter(e=>!e.abs&&!isOff(e.date)&&e.bank&&extra(e)>0).map(e=>[e.date,Math.round(extra(e)*100)/100,"Overtime from work log"])].sort((a,b)=>a[0].localeCompare(b[0]))]}
+  if(k==="money"){return[["date","type","amount","category","note"],...[...S.money].sort((a,b)=>a.date.localeCompare(b.date)).map(x=>[x.date,x.type==="in"?"income":"expense",x.amt,x.cat,x.note||""])]}
+  return[["title","platform","status"],...S.games.map(g=>[g.title,g.platform||"",g.status])]}
+window.exportCsv=async()=>{const k=$("#csvk").value;const text="\uFEFF"+csvRows(k).map(r=>r.map(csvq).join(",")).join("\r\n");await saveFile("dashboard-"+k+"-"+today()+".csv",text,"text/csv")};
 window.importData=inp=>{const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!d.settings||!Array.isArray(d.work))throw 0;if(!confirm("Replace everything on this device with this backup?"))return;S=Object.assign({settings:{target:8,cur:"\u20ac"},work:[],bank:[],days:[],money:[],games:[]},d);save()}catch(e){alert("That file is not a valid backup.")}};r.readAsText(f)};
 window.addWork=()=>{
   const date=$("#wd").value;if(!date)return;
   const e={id:uid(),date,note:$("#wn").value.trim()};
   if($("#wt").value==="abs"){e.abs=true}
   else{e.start=$("#ws").value;e.end=$("#we").value;e.brk=+$("#wb").value||0;e.bank=$("#wk").checked;if(!e.start||!e.end)return}
-  S.work=S.work.filter(x=>x.date!==date);S.work.push(e);save();
+  S.work=S.work.filter(x=>x.date!==date&&x.id!==wEdit);wEdit=null;S.work.push(e);save();
 };
 
 function vBank(){
@@ -210,11 +269,11 @@ function vMoney(){
   <div class="row"><div><label>Type</label><select id="mt"><option value="out">Expense</option><option value="in">Income</option></select></div><div><label>Amount</label><input type="number" step="0.01" id="ma" inputmode="decimal"></div></div>
   <div class="row"><div><label>Date</label><input type="date" id="md" value="${today()}"></div><div><label>Category</label><select id="mc">${CATS.map(c=>`<option>${c}</option>`).join("")}</select></div></div>
   <label>Note</label><input id="mn" placeholder="Optional"><div style="height:10px"></div>
-  <button class="p" onclick="addMoney()">Save</button></div>
+  <button class="p" id="msave" onclick="addMoney()">Save</button></div>
   ${cats.length?`<h2>Spending by category</h2><div class="card">${cats.map(([c,v])=>`<div class="item"><div class="m">${esc(c)}</div><span>${fmtM(v)}</span></div>`).join("")}</div>`:""}
-  <h2>Entries</h2><div class="card">${list.length?list.map(x=>`<div class="item"><div class="m"><b>${esc(x.cat)}</b><small>${esc(x.date)}${x.note?" · "+esc(x.note):""}</small></div><span class="${x.type==="in"?"pos":"neg"}">${x.type==="in"?"+":"−"}${fmtM(+x.amt)}</span><button class="x" onclick="del('money','${x.id}')">×</button></div>`).join(""):'<div class="empty">Nothing this month</div>'}</div>`;
+  <h2>Entries</h2><div class="card">${list.length?list.map(x=>`<div class="item"><div class="m" onclick="editMoney('${x.id}')" style="cursor:pointer"><b>${esc(x.cat)}</b><small>${esc(x.date)}${x.note?" · "+esc(x.note):""}</small></div><span class="${x.type==="in"?"pos":"neg"}">${x.type==="in"?"+":"−"}${fmtM(+x.amt)}</span><button class="x" onclick="del('money','${x.id}')">×</button></div>`).join(""):'<div class="empty">Nothing this month</div>'}</div>`;
 }
-window.addMoney=()=>{const amt=+$("#ma").value;if(!amt||!$("#md").value)return;S.money.push({id:uid(),type:$("#mt").value,amt:Math.abs(amt),date:$("#md").value,cat:$("#mc").value,note:$("#mn").value.trim()});save()};
+window.addMoney=()=>{const amt=+$("#ma").value;if(!amt||!$("#md").value)return;S.money=S.money.filter(x=>x.id!==mEdit);mEdit=null;S.money.push({id:uid(),type:$("#mt").value,amt:Math.abs(amt),date:$("#md").value,cat:$("#mc").value,note:$("#mn").value.trim()});save()};
 
 function vGames(){
   const cnt=s=>S.games.filter(g=>g.status===s).length;
@@ -222,16 +281,17 @@ function vGames(){
   <div class="card"><h2 style="margin-top:0">Add a game</h2>
   <label>Title</label><input id="gt"><div style="height:8px"></div>
   <div class="row"><div><label>Platform</label><input id="gp" placeholder="PC, PS5…"></div><div><label>Status</label><select id="gs">${STAT.map(s=>`<option>${s}</option>`).join("")}</select></div></div>
-  <button class="p" onclick="addGame()">Add</button></div>
-  ${STAT.map(s=>{const l=S.games.filter(g=>g.status===s);if(!l.length)return"";return `<h2>${s} (${l.length})</h2><div class="card">${l.map(g=>`<div class="item"><div class="m"><b>${esc(g.title)}</b><small>${esc(g.platform||"")}</small></div><select style="width:auto" onchange="setGame('${g.id}',this.value)">${STAT.map(o=>`<option${o===g.status?" selected":""}>${o}</option>`).join("")}</select><button class="x" onclick="del('games','${g.id}')">×</button></div>`).join("")}</div>`}).join("")}
+  <button class="p" id="gsave" onclick="addGame()">Add</button></div>
+  ${STAT.map(s=>{const l=S.games.filter(g=>g.status===s);if(!l.length)return"";return `<h2>${s} (${l.length})</h2><div class="card">${l.map(g=>`<div class="item"><div class="m" onclick="editGame('${g.id}')" style="cursor:pointer"><b>${esc(g.title)}</b><small>${esc(g.platform||"")}</small></div><select style="width:auto" onchange="setGame('${g.id}',this.value)">${STAT.map(o=>`<option${o===g.status?" selected":""}>${o}</option>`).join("")}</select><button class="x" onclick="del('games','${g.id}')">×</button></div>`).join("")}</div>`}).join("")}
   ${S.games.length?"":'<div class="empty">Your backlog is empty</div>'}`;
 }
-window.addGame=()=>{const t=$("#gt").value.trim();if(!t)return;S.games.push({id:uid(),title:t,platform:$("#gp").value.trim(),status:$("#gs").value});save()};
+window.addGame=()=>{const t=$("#gt").value.trim();if(!t)return;S.games=S.games.filter(x=>x.id!==gEdit);gEdit=null;S.games.push({id:uid(),title:t,platform:$("#gp").value.trim(),status:$("#gs").value});save()};
 window.setGame=(id,s)=>{const g=S.games.find(x=>x.id===id);if(g){g.status=s;save()}};
 
 function render(){
+  wEdit=mEdit=gEdit=null;
   const y=window.scrollY;
-  $("#v").innerHTML={work:vWork,bank:vBank,money:vMoney,games:vGames}[tab]();
+  $("#v").innerHTML={work:vWork,cal:vCalTab,bank:vBank,money:vMoney,games:vGames}[tab]();
   $("#nav").innerHTML=TABS.map(t=>`<button class="${t[0]===tab?"on":""}" onclick="go('${t[0]}')"><span>${t[1]}</span>${t[2]}</button>`).join("");
   window.scrollTo(0,y);
 }
